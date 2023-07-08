@@ -1,0 +1,45 @@
+- name: Disable DNS
+  become: yes
+  lineinfile:
+    dest: "/etc/ssh/sshd_config"
+    regexp: '^\s*UseDNS.*'
+    insertafter: EOF
+    line: "UseDNS no"
+
+- name: Disable GSSAPI
+  become: yes
+  lineinfile:
+    dest: "/etc/ssh/sshd_config"
+    regexp: '^\s*GSSAPIAuthentication.*'
+    insertafter: EOF
+    line: "GSSAPIAuthentication no"
+
+- name: Increase MaxSessions
+  become: yes
+  lineinfile:
+    dest: "/etc/ssh/sshd_config"
+    regexp: 's/^.?MaxSessions\s\d*'
+    insertafter: EOF
+    line: "MaxSessions 500"
+
+- name: Creates ssh directory
+  become: yes
+  file:
+    path: /root/.ssh
+    state: directory
+
+- name: Add ssh credentials
+  become: yes
+  copy:
+    src: '{{ item }}'
+    dest: '/root/.ssh/{{ item }}'
+    owner: 'root'
+    group: 'root'
+    mode: 0600
+    directory_mode: 0700
+  with_items:
+    - id_rsa
+    - id_rsa.pub
+    - authorized_keys
+    - config
+    - repo_private_key

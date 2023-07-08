@@ -1,0 +1,152 @@
+- name: Install a bunch of needed software
+  become: yes
+  apt:
+    name:
+      - git
+      - openjdk-11-jdk
+      - openjdk-11-jre
+      - virtualbox
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - python3
+      - python3-pip
+      - python3-venv
+      - sshpass
+      - rng-tools
+    state: present
+    update_cache: yes
+
+- name: upgrade pip
+  become: yes
+  pip:
+    name: pip
+    executable: pip3
+    state: latest
+
+- name: Install python dependencies
+  become: yes
+  shell: |
+    LANG="en_US.utf8" PYTHONUTF8=1 pip3 install -U pyone ansible awscli boto3
+
+- name: Install ansible plugins
+  become: yes
+  shell: |
+    ansible-galaxy collection install community.general
+    ansible-galaxy collection install amazon.aws
+
+- name: Add key for docker repo
+  become: yes
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add repo for docker
+  become: yes
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu bionic stable
+    state: present
+
+- name: Install docker
+  become: yes
+  apt:
+    name:
+      - docker-ce
+    state: present
+    update_cache: yes
+
+- name: Enable Docker HTTP API
+  lineinfile:
+    dest: /lib/systemd/system/docker.service
+    regexp: 'ExecStart='
+    line: ExecStart=/usr/bin/dockerd -H=localhost:2375 -H fd:// --containerd=/run/containerd/containerd.sock
+    backrefs: yes
+
+- name: Create dir for docker cert
+  file:
+    path: "/etc/docker/certs.d/10.51.16.17:8443"
+    state: directory
+
+- name: Put docker cert to VM
+  copy:
+    src: "ca.crt"
+    dest: "/etc/docker/certs.d/10.51.16.17:8443"
+
+- name: Add jenkins user
+  become: yes
+  user:
+    name: jenkins
+    create_home: yes
+    shell: /bin/bash
+    groups: sudo,docker
+
+- name: Add jenkins to docker group
+  become: yes
+  shell: "usermod -aG docker jenkins"
+
+- name: Create .ssh dir for the user
+  become: yes
+  file:
+    path: /home/jenkins/.ssh
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0700'
+
+- name: Increase MaxSessions
+  become: yes
+  lineinfile:
+    dest: "/etc/ssh/sshd_config"
+    regexp: 's/^.?MaxSessions\s\d*'
+    insertafter: EOF
+    line: "MaxSessions 500"
+
+- name: Add ssh credentials for jenkins user
+  become: yes
+  copy:
+    src: '{{ item }}'
+    dest: '/home/jenkins/.ssh/{{ item }}'
+    owner: 'jenkins'
+    group: 'jenkins'
+    mode: 0600
+    directory_mode: 0700
+  with_items:
+    - id_rsa
+    - repo_id_rsa
+    - id_rsa.pub
+    - authorized_keys
+    - config
+
+- name: Generate gpg key and copy to jenkins user home dir
+  become: yes
+  shell: |
+    rngd -r /dev/urandom
+    cat > key.info <<EOF
+    Key-Type: 1
+    Key-Length: 2048
+    Subkey-Type: 1
+    Subkey-Length: 2048
+    Name-Real: vasyan
+    Name-Email: vasyan@gmail.com
+    Passphrase: ChangeMe
+    Expire-Date: 0
+    EOF
+    gpg --batch --gen-key key.info
+    rm -rf /home/jenkins/.gnupg
+    mkdir /home/jenkins/.gnupg
+    cp -r /root/.gnupg /home/jenkins/.gnupg
+    chown jenkins:jenkins /home/jenkins/.gnupg
+    chmod 700 /home/jenkins/.gnupg
+
+- name: Update gpg.conf
+  become: yes
+  vars:
+    gpgconf: |
+      batch
+      no-tty
+  copy:
+    content: "{{ gpgconf }}"
+    dest: /home/jenkins/.gnupg/gpg.conf
+    owner: jenkins
+    group: jenkins

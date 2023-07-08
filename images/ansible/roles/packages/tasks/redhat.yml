@@ -1,0 +1,112 @@
+- set_fact:
+    lxc_pkgname: "python3-lxc"
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version | int >= 8
+
+- set_fact:
+    lxc_pkgname: "python2-lxc"
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version | int < 8
+
+- set_fact:
+    libnl3_pkgname: "libnl3-devel"
+
+- set_fact:
+    libunwind_pkgname: "libunwind-devel"
+
+- set_fact:
+    libunwind_pkgname: "libunwind"
+  when: ansible_distribution == 'OracleLinux' and ansible_distribution_major_version|int == 7
+
+- set_fact:
+    libnl3_pkgname: "libnl3"
+  when: ansible_distribution == 'OracleLinux' and ansible_distribution_major_version|int == 7
+
+- name: Disable gpg check
+  shell: "sed -i 's/gpgcheck=1/gpgcheck=0/g' /etc/yum.conf"
+  ignore_errors: yes
+
+- name: Install Common packages
+  become: yes
+  yum:
+    disable_gpg_check: yes
+    validate_certs: no
+    name:
+      - "@Development Tools"
+      - "@System Tools"
+      - "@RPM Development Tools"
+      - openssh-clients
+      - sudo
+      - selinux-policy-devel
+      - net-tools
+      - bzip2
+      - nano
+      - python3
+      - python3-devel
+      - python3-virtualenv
+      - python3-pip
+      - python3-setuptools
+      - yum-utils
+      - wget
+      - bash-completion
+      - unzip
+      - nc
+      - iproute
+      - kernel-headers
+      - kernel-devel
+      - make
+      - elfutils-libelf-devel
+      - "{{ libnl3_pkgname }}"
+      - "{{ libunwind_pkgname }}"
+      - vim-common
+      - time
+      - perl
+      - nfs-utils
+      - patch
+      - elfutils
+      - time
+      - vi
+      - valgrind
+      - rsync
+      - vim-common
+      - git
+      - xz
+      - tcpdump
+      - iputils
+      - parted
+      - lvm2
+      - nc
+    state: present
+
+- name: Disable main repo (only for OEL7)
+  shell: "yum-config-manager --disable ol7_latest"
+  when: ansible_distribution == 'OracleLinux' and ansible_distribution_major_version|int == 7
+
+- name: Install lxc packages
+  become: yes
+  yum:
+    disable_gpg_check: yes
+    validate_certs: no
+    name:
+      - lxc
+      - lxc-templates
+      - lxc-extra
+      - "{{ lxc_pkgname }}"
+    state: present
+
+- name: enable main repo (only for OEL7)
+  shell: "yum-config-manager --enable ol7_latest"
+  when: ansible_distribution == 'OracleLinux' and ansible_distribution_major_version|int == 7
+
+
+- name: Install packages only for rhel8 
+  become: yes
+  yum:
+    disable_gpg_check: yes
+    validate_certs: no
+    name:
+      - network-scripts
+    state: present
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version | int >= 8 
+
+- include_role:
+    name: packages
+    tasks_from: awscli

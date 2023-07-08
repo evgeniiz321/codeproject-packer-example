@@ -1,0 +1,43 @@
+- name: pip self-update
+  shell: pip3 install --upgrade pip
+
+- name: Install python dependencies
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  become: yes
+  pip:
+    executable: pip3
+    state: latest
+    name:
+      - aiohttp_rpc
+      - asyncio
+      - setuptools_rust
+      - azure-mgmt-compute
+      - azure-mgmt-network
+      - azure-mgmt-resource
+      - azure-mgmt-monitor
+      - boto3
+      - botocore
+      - docker
+      - dataclasses
+      - gitpython
+      - google-api-python-client>=1.6.5
+      - protobuf==3.19.4
+      - Jinja2==2.11.2
+      - jsonschema
+      - Mako==1.1.0
+      - oauth2client
+      - packet-python
+      - paramiko
+      - plumbum==1.6.7
+      - pyone==5.12.0
+      - python-digitalocean>=1.10.1
+      - pyyaml==5.3.1
+      - requests
+      - six==1.15.0
+      - sysrsync
+      - unidiff==0.5.3
+      - pytest
+      - pytest-mock
+      - cython
+      - cryptography<=3.3.2

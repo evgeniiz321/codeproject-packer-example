@@ -1,0 +1,57 @@
+- name: Set up password-less sudo for user
+  become: yes
+  lineinfile:
+    dest: '/etc/sudoers.d/my-fav-username'
+    create: yes
+    line: "my-fav-username ALL=(ALL) NOPASSWD:ALL"
+    insertafter: EOF
+    mode: '0440'
+    owner: "root"
+    group: "root"
+
+- name: Don't require tty
+  become: yes
+  lineinfile:
+    dest: "/etc/sudoers"
+    insertafter: EOF
+    line: "Defaults !requiretty"
+
+- name: enable ipv4 forwarding
+  become: yes
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+
+- name: Create dir for coredumps
+  become: yes
+  file:
+    dest: /opt/corefiles/
+    state: directory
+    mode: '0777'
+
+- name: Update sysctl conf to enable coredumps
+  become: yes
+  blockinfile:
+    dest: /etc/sysctl.conf
+    block: |
+      kernel.core_pattern=/opt/corefiles/core.%e.%t.%p
+      kernel.core_pipe_limit=0
+      kernel.core_uses_pid=0
+      fs.suid_dumpable=1
+
+- name: sysctl -p
+  become: yes
+  shell: 'sysctl -p || :'
+
+- name: update ulimits
+  become: yes
+  shell: |
+    cat >> /etc/security/limits.conf <<EOF
+    root - core unlimited
+    root - nofile 999999
+    root - memlock unlimited
+    root - nproc unlimited
+    root - locks unlimited
+    root - sigpending unlimited
+    EOF

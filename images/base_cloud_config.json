@@ -1,0 +1,24 @@
+{
+  "IMAGE": {
+    "DATASTORE_ID": 1
+  },
+  "TEMPLATE": {
+    "DESCRIPTION": "image for tests",
+    "CONTEXT": {
+      "NETWORK": "YES",
+      "SSH_PUBLIC_KEY": "$USER[SSH_PUBLIC_KEY]"
+    },
+    "CPU": 1,
+    "DISK": {
+      "DRIVER": "raw"
+    },
+    "HYPERVISOR": "kvm",
+    "MEMORY": "2048",
+    "MEMORY_UNIT_COST": "MB",
+    "OS": {
+      "ARCH": "x86_64",
+      "BOOT": "",
+      "ROOT": "hda1"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+---
+- hosts: localhost
+  gather_facts: true
+  become: yes
+
+  roles:
+    - role: jenkins-agent
+    - role: python3

@@ -1,0 +1,21 @@
+- name: Get the list of services
+  service_facts:
+
+- name: Disable wait online service
+  become: yes
+  systemd:
+    name: NetworkManager-wait-online
+    enabled: no
+    state: stopped
+  when: "'NetworkManager-wait-online' in services"
+
+- name: Disable SELinux
+  replace:
+    path: /etc/selinux/config
+    regexp: 'SELINUX=\S+'
+    replace: 'SELINUX=disabled'
+
+- name: Upgrade libmodulemd for centos8
+  become: yes
+  shell: dnf upgrade -y libmodulemd
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version|int == 8
